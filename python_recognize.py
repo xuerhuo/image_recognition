@@ -80,7 +80,7 @@ def recognize_picture(p,r):
     img2.show()
     pix2 = noise(pixdata=pix2,width=width,height=heigh)
     img2.show()
-    time.sleep(3)
+    time.sleep(2)
     exit(-1)
     #x表示行，y表示列
     #x0中存储列的位置，y0存储列每个列中像素为0（黑点）的个数
