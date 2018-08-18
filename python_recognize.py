@@ -1,5 +1,9 @@
+import time
+import pytesseract
 from PIL import Image
 import traceback
+import random
+
 import python_getpic
 import os
 #竖直模板库
@@ -31,6 +35,22 @@ def set_table(a):
         else:
             table.append(1)
     return table
+
+def noise(pixdata,width,height):
+    print(width,height)
+    for y in range(0, height):
+        for x in range(0,width):
+            count = 0
+            print(pixdata[x,y],end='')
+            if y>0 and pixdata[x, y - 1] > 0: count = count + 1
+            if y<height-1 and pixdata[x, y + 1] > 0: count = count + 1
+            if x>0 and pixdata[x - 1, y] > 0: count = count + 1
+            if x<width-1 and pixdata[x + 1, y] > 0 : count = count + 1
+            if count > 2:
+                pixdata[x, y] = 1
+            pass
+        print('\n',end='')
+    return  pixdata;
 def recognize_picture(p,r):
     '''
      这个识别函数的过程是：首先对图像进行灰度处理，然后对验证码中每个数字进行切割，如果有四个数字，就切割成四份
@@ -46,20 +66,23 @@ def recognize_picture(p,r):
     #convert函数的作用：将图片转化为其他种类的色彩模式，如灰度图（将黑白之间分成若干个等级），
     #二值图（非黑即白），相关的模式有‘1，L,P,RGB.....’，这里用到的模式为L 转化为灰度图，
     #set_table（140）140是一个分界线，大于这个值的像素色值设为1，小于140的设为0，
-    img2=img1.point(set_table(140),'1')
+    img2=img1.point(set_table(199),'1')
     pix2=img2.load()
     #得到这个图片像素的宽高
     (width,heigh)=img2.size
     x0=[]
     y0=[]
-
+    img2.show()
+    pix2 = noise(pixdata=pix2,width=width,height=heigh)
+    img2.show()
+    time.sleep(3)
+    exit(-1)
     #x表示行，y表示列
     #x0中存储列的位置，y0存储列每个列中像素为0（黑点）的个数
     for x in range(0,width):      
         jd=0
-        for y in  range(1,heigh):           
+        for y in  range(1,heigh):
             if pix2[x,y]==0:
-                
                 jd+=1
         y0.append(jd)
         if jd>0:     
@@ -74,7 +97,7 @@ def recognize_picture(p,r):
     if x0[1]-x0[0]>1:   #之前的循环没有检查x0[0]
         x0.remove(x0[0])
     if x0[-1]-x0[-2]>1:  #和x0[-1]
-        x0.remove(x0[-1]) 
+        x0.remove(x0[-1])
     z=[]
     z.append(x0[0])
     for j in range(0,len(x0)-1):
@@ -142,8 +165,9 @@ if __name__=='__main__':
         os.makedirs(global_path)
         
     for i in range(end):
+        i = random.randint(1,end)
         try:                
-            p=python_getpic.path+str(i)+".jpg"
+            p=python_getpic.path+str(i)+".png"
             recognize_picture(p,i)
         except:
             print('something wrong')
