@@ -46,7 +46,12 @@ def noise(pixdata,width,height):
             if y<height-1 and pixdata[x, y + 1] > 0: count = count + 1
             if x>0 and pixdata[x - 1, y] > 0: count = count + 1
             if x<width-1 and pixdata[x + 1, y] > 0 : count = count + 1
-            if count > 2:
+
+            if x<width-1 and y<height-1 and pixdata[x + 1, y+1] > 0 : count = count + 1
+            if x>0 and y>0 and pixdata[x - 1, y-1] > 0 : count = count + 1
+            if x>0 and y<height-1 and pixdata[x - 1, y+1] > 0 : count = count + 1
+            if x<width-1 and y>0 and pixdata[x + 1, y-1] > 0 : count = count + 1
+            if count >=5 or y==0 or y==height-1:
                 pixdata[x, y] = 1
             pass
         print('\n',end='')
@@ -166,6 +171,7 @@ if __name__=='__main__':
         
     for i in range(end):
         i = random.randint(1,end)
+        print(i)
         try:                
             p=python_getpic.path+str(i)+".png"
             recognize_picture(p,i)
