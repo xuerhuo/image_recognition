@@ -2,7 +2,7 @@ import requests
 import os
 
 #此处路径自己修改， 
-path='G:\py\identfying_code_recognize\imgs\\'
+path='E:\workspace\python\image_recognition\imgs\\'
 num=1000
 # if os.path.exists(path):
 #     pass

@@ -1,3 +1,4 @@
+import json
 import time
 import pytesseract
 from PIL import Image
@@ -6,25 +7,6 @@ import random
 import matplotlib.pyplot as plt
 import python_getpic
 import os
-#竖直模板库
-#前四个为数字的特征向量，最后一个数字为该数字
-#这些模板都是需要事先拿出十几张验证码试探得出的每个数字的特征向量
-list0 = [7,4,4,4,0]
-list1 = [1,4,13,2,1]
-list2 = [5,6,6,7,2]
-list3 = [4,6,6,10,3]
-list4 = [2,6,5,13,4]
-list5 = [9,6,6,8,5]
-list6 = [6,7,6,8,6]
-list7 = [2,6,5,5,7]
-list8 = [3,11,6,11,8]
-list9 = [4,8,6,7,9]
-list10 = [4,5,13,2,1]
-#漏网之鱼
-list11 = [1,8,6,6,9]
-list12 = [1,9,7,7,8]
-list13 = [1,0,4,13,1]
-list14 = [1,6,6,7,2]
 
 #此函数用于设置像素值的转换，
 def set_table(a):
@@ -35,9 +17,8 @@ def set_table(a):
         else:
             table.append(1)
     return table
-
+# 降噪
 def noise(pixdata,width,height):
-    print(width,height)
     for y in range(0, height):
         for x in range(0,width):
             count = 0
@@ -58,6 +39,7 @@ def noise(pixdata,width,height):
     return  pixdata;
 # 图像分割
 def division(pixdata,width,height):
+    result ={}
     xx = []
     ret = []
     fx = []
@@ -70,9 +52,10 @@ def division(pixdata,width,height):
                 count+=1
         ret.append(count)
         xx.append((x,count))
+    result['count'] = ret
     temp = 0
     tempret = xx.copy()
-    # //削肩
+    # 锐化波谷
     for v in xx:
         temp+=1
         if xx.index(v)>0:
@@ -83,7 +66,6 @@ def division(pixdata,width,height):
     xx = tempret
     ret=[]
     #求波谷
-    print('df')
     for v in xx:
         index = xx.index(v)
         if index==0:
@@ -98,15 +80,21 @@ def division(pixdata,width,height):
         ret.append(v[0])
     ret = ret[0:5]
     ret.sort()
-    print(ret)
-    return  ret;
+    result['fxpoint'] = ret
+
+
+
+    return  result;
 def plot(img,img1,data):
+    w,h = img.size
     plt.subplot(1, 2, 1)
-    plt.plot(data)
+    plt.plot(data['count'])
     plt.subplot(2, 2, 2)
     plt.plot([0, 5, 5, 0,0], [0, 0, 5, 5,0],'r')
     plt.imshow(img1)
     plt.subplot(2, 2, 4)
+    for dat in data['fxpoint']:
+        plt.plot([dat,dat],[0,h],'r')
     plt.imshow(img)
     plt.show()
 # 填充灰度
@@ -130,14 +118,90 @@ def filL(img):
             else:
                 pdata[x, y] = 255
     return  img
+# //切割图像
+def dodivimg(img,diviarr):
+    w,h = img.size
+    imgs = []
+    i=0
+    for div in diviarr:
+        if i==len(diviarr)-1:
+            right = w
+        else:
+            right = diviarr[i+1]-div
+            right+=div
+        temp = img.crop((div,0,right,h))
+        imgs.append(temp)
+        i+=1
+    return  imgs
+# //生成基准数据
+def writedata(imgs):
+    i = 0
+    for img in imgs:
+        w,h = img.size
+        pdata = img.load()
+        temp = {}
+        temp['data'] = []
+        temp['width'] = w
+        temp['height'] = h
+
+        for x in range(w):
+            for y in range(h):
+                temp['data'].append(pdata[x,y])
+                pass
+        temp = json.dumps(temp)
+        with open('data/x{num}.json'.format(num=str(i+1)), 'w') as f:
+            f.write(temp)
+        f.close()
+        i+=1
+    exit(0)
+def readdata():
+    ret = {}
+    for dirpath, dirnames, filenames in os.walk('./data/'):
+        for filepath in filenames:
+            # print(os.path.join(dirpath, filepath))
+            with open(os.path.join(dirpath, filepath),'r') as f:
+                temp = f.read()
+                ret[filepath.split('.')[0]]=json.loads(temp)
+            f.close()
+    return ret;
+
+#汉明指纹 平均hash ahash
+def recognize_1b(img, recdata):
+    fx = []
+    for k in recdata:
+        dat = recdata[k]
+        img = img.resize((dat['width'],dat['height']))
+        pxdata = img.load()
+        tempfx = []
+        for x in range(dat['width']):
+            for y in range(dat['height']):
+                tempfx.append(pxdata[x,y])
+        i=0
+        count = 0
+        for bit in dat['data']:
+           # print(bit,tempfx[i])
+           if bit!=tempfx[i]:
+               count+=1
+           i+=1
+        fx.append((k,count))
+    fx.sort(key=lambda  x:x[1])
+    ret = fx[0:1]
+    # print(ret[0])
+    return ret[0][0]
+def recognize_imgs(imgs):
+    recdata = readdata()
+    ret = ""
+    for img in imgs:
+        temp = recognize_1b(img,recdata)
+        ret+=temp
+    return  ret
+
 def recognize_picture(p,r):
+    readdata()
     '''
      这个识别函数的过程是：首先对图像进行灰度处理，然后对验证码中每个数字进行切割，如果有四个数字，就切割成四份
      每一个数字相是由一个像素矩阵组成，然后求取每个数字的像素矩阵的特征值，然后再通过特征向量来匹配验证码。
-
-     我只通过像素矩阵的竖直方向上的几列的特征像素值来判断验证码，正确率达到了97%，
-     其实还可以通过横向的几列像素值的特征值，还有对角线的特征值继续判断，提高正确率。
-      
+    
     '''
     img=Image.open(p)
     img1=img.convert("L")
@@ -156,85 +220,12 @@ def recognize_picture(p,r):
     pix2 = noise(pixdata=pix2,width=width,height=heigh)
     data = division(pixdata=pix2,width=width,height=heigh)
     plot(img2,img,data)
-
+    imgs = dodivimg(img2,data['fxpoint'])
+    # writedata(imgs)
+    text = recognize_imgs(imgs)
+    print("第{i}张图 为:{t}".format(i=str(r),t=text))
     return True
-    #x表示行，y表示列
-    #x0中存储列的位置，y0存储列每个列中像素为0（黑点）的个数
-    for x in range(0,width):      
-        jd=0
-        for y in  range(1,heigh):
-            if pix2[x,y]==0:
-                jd+=1
-        y0.append(jd)
-        if jd>0:     
-            x0.append(x)
-    count=[]
-    for i in range(0,len(x0)-1):
-        if (i-1)!=-1:
-            if x0[i]-x0[i-1]>1 and x0[i+1]-x0[i]>1:
-                count.append(i)    #只是保存位置值，而不立即移除，是因为考虑循环可能溢出
-    for i in range(len(count)-1,-1,-1):  #逆向删除，是考虑到移除数据时，后面的数据会向前移动
-        x0.remove(x0[count[i]])
-    if x0[1]-x0[0]>1:   #之前的循环没有检查x0[0]
-        x0.remove(x0[0])
-    if x0[-1]-x0[-2]>1:  #和x0[-1]
-        x0.remove(x0[-1])
-    z=[]
-    z.append(x0[0])
-    for j in range(0,len(x0)-1):
-        
-        if(x0[j+1]-x0[j])>1:
-            
-            z.append(x0[j])
-            z.append(x0[j+1])
-    z.append(x0[-1])
-    #print(z)
-    sta1=z[0]
-    end1=z[1]
-    sta2=z[2]
-    end2=z[3]
-    sta3=z[4]
-    end3=z[5]
-    sta4=z[6]
-    end4=z[7]
-    box=[(sta1,0,end1,heigh),(sta2,0,end2,heigh),(sta3,0,end3,heigh),(sta4,0,end4,heigh)]
-    result=''
-    for j in range(0,4):   #四个验证码
-        img3=img2.crop(box[j])
-        #img3.show()
-        (w3,h3)=img3.size
-        pix3=img3.load()
-        #print(w3,'--',h3)
 
-        yn=[]
-        xn=[]
-        for x3 in range(0,4):
-            jd2 = 0
-            for y3 in range(1,h3):
-                #分别取0,2,4,6列的像素值作为这个数的特征向量
-                if pix3[int(x3*2),y3] == 0:
-                
-                    jd2+=1
-            yn.append(jd2)
-        #print(yn)
-
-        #开始识别
-        for k in [list0,list1,list2,list3,list4,list5,list6,list7,list8,list9,list10,list11,list12,list13,list14]:
-            t=0
-            for m in range(0,4):
-                t=t+(yn[m]-k[m])*(yn[m]-k[m])  #消除正负抵消的误差
-            if t<2:    # 理论上t==0才符合要求,t<2是为了消除有些数字像素点缺漏的问题
-                result=result+str(k[4])
-                break
-    global q
-    if len(result)==4:
-        q+=1
-    else:
-        result="unknow"+result
-        print('第'+str(r)+'张未识别')
-    
-    path=global_path+str(result)+".jpg"
-    img.save(path)
 global_path=python_getpic.path+r"recognize/"
 
 if __name__=='__main__':
@@ -245,7 +236,7 @@ if __name__=='__main__':
     else:
         os.makedirs(global_path)
         
-    for i in range(20):
+    for i in range(5):
         i = random.randint(1,end)
         print(i)
         try:                
@@ -255,4 +246,4 @@ if __name__=='__main__':
             print('something wrong')
             traceback.print_exc()
             break;
-    print("识别了"+str(q)+"张验证码",'正确率为'+str((q/end)*100)+"%")
+    # print("识别了"+str(q)+"张验证码",'正确率为'+str((q/end)*100)+"%")
