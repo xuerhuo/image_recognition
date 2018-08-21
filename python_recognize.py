@@ -3,7 +3,7 @@ import pytesseract
 from PIL import Image
 import traceback
 import random
-
+import matplotlib.pyplot as plt
 import python_getpic
 import os
 #竖直模板库
@@ -41,7 +41,7 @@ def noise(pixdata,width,height):
     for y in range(0, height):
         for x in range(0,width):
             count = 0
-            print(pixdata[x,y],end='')
+            # print(pixdata[x,y],end='')
             if y>0 and pixdata[x, y - 1] > 0: count = count + 1
             if y<height-1 and pixdata[x, y + 1] > 0: count = count + 1
             if x>0 and pixdata[x - 1, y] > 0: count = count + 1
@@ -54,8 +54,47 @@ def noise(pixdata,width,height):
             if count >=5 or y==0 or y==height-1:
                 pixdata[x, y] = 1
             pass
-        print('\n',end='')
+        # print('\n',end='')
     return  pixdata;
+def division(pixdata,width,height):
+    xx = []
+    for x in range(0, width):
+        count = 0
+        for y in range(0, height):
+            if pixdata[x,y]==0:
+                count+=1
+        xx.append(count)
+    return  xx;
+def plot(img,img1,data):
+    plt.subplot(1, 2, 1)
+    plt.plot(data)
+    plt.subplot(2, 2, 2)
+    plt.plot([0, 5, 5, 0,0], [0, 0, 5, 5,0],'r')
+    plt.imshow(img1)
+    plt.subplot(2, 2, 4)
+    plt.imshow(img)
+    plt.show()
+# 填充灰度
+def filL(img):
+    pdata = img.load()
+    xy = {}
+    for x in range(5):
+        for y in range(5):
+            l = pdata[x,y]
+            if l in xy:
+                xy[l]+=1
+            else:
+                xy[l]=0
+    l = max(xy)
+    print('l:%d',l)
+    (w,h) = img.size
+    for x in range(w):
+        for y in range(h):
+            if pdata[x,y]!=l:
+                pdata[x,y] = 0
+            else:
+                pdata[x, y] = 255
+    return  img
 def recognize_picture(p,r):
     '''
      这个识别函数的过程是：首先对图像进行灰度处理，然后对验证码中每个数字进行切割，如果有四个数字，就切割成四份
@@ -66,22 +105,23 @@ def recognize_picture(p,r):
       
     '''
     img=Image.open(p)
-    #pix=img.load()
     img1=img.convert("L")
+    img1=filL(img1)
+    imgl=img1
     #convert函数的作用：将图片转化为其他种类的色彩模式，如灰度图（将黑白之间分成若干个等级），
     #二值图（非黑即白），相关的模式有‘1，L,P,RGB.....’，这里用到的模式为L 转化为灰度图，
     #set_table（140）140是一个分界线，大于这个值的像素色值设为1，小于140的设为0，
-    img2=img1.point(set_table(199),'1')
+    img2=img1.point(set_table(200),'1')
     pix2=img2.load()
     #得到这个图片像素的宽高
     (width,heigh)=img2.size
     x0=[]
     y0=[]
-    img2.show()
     pix2 = noise(pixdata=pix2,width=width,height=heigh)
-    img2.show()
-    time.sleep(2)
-    exit(-1)
+    data = division(pixdata=pix2,width=width,height=heigh)
+    plot(img2,img,data)
+
+    return True
     #x表示行，y表示列
     #x0中存储列的位置，y0存储列每个列中像素为0（黑点）的个数
     for x in range(0,width):      
@@ -169,7 +209,7 @@ if __name__=='__main__':
     else:
         os.makedirs(global_path)
         
-    for i in range(end):
+    for i in range(20):
         i = random.randint(1,end)
         print(i)
         try:                
