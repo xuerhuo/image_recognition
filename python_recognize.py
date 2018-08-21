@@ -7,7 +7,6 @@ import random
 import matplotlib.pyplot as plt
 import python_getpic
 import os
-
 #此函数用于设置像素值的转换，
 def set_table(a):
     table=[]
@@ -27,7 +26,6 @@ def noise(pixdata,width,height):
             if y<height-1 and pixdata[x, y + 1] > 0: count = count + 1
             if x>0 and pixdata[x - 1, y] > 0: count = count + 1
             if x<width-1 and pixdata[x + 1, y] > 0 : count = count + 1
-
             if x<width-1 and y<height-1 and pixdata[x + 1, y+1] > 0 : count = count + 1
             if x>0 and y>0 and pixdata[x - 1, y-1] > 0 : count = count + 1
             if x>0 and y<height-1 and pixdata[x - 1, y+1] > 0 : count = count + 1
@@ -81,9 +79,6 @@ def division(pixdata,width,height):
     ret = ret[0:5]
     ret.sort()
     result['fxpoint'] = ret
-
-
-
     return  result;
 def plot(img,img1,data):
     w,h = img.size
@@ -143,7 +138,6 @@ def writedata(imgs):
         temp['data'] = []
         temp['width'] = w
         temp['height'] = h
-
         for x in range(w):
             for y in range(h):
                 temp['data'].append(pdata[x,y])
@@ -164,7 +158,6 @@ def readdata():
                 ret[filepath.split('.')[0]]=json.loads(temp)
             f.close()
     return ret;
-
 #汉明指纹 平均hash ahash
 def recognize_1b(img, recdata):
     fx = []
@@ -195,14 +188,10 @@ def recognize_imgs(imgs):
         temp = recognize_1b(img,recdata)
         ret+=temp
     return  ret
-
 def recognize_picture(p,r):
     readdata()
-    '''
-     这个识别函数的过程是：首先对图像进行灰度处理，然后对验证码中每个数字进行切割，如果有四个数字，就切割成四份
-     每一个数字相是由一个像素矩阵组成，然后求取每个数字的像素矩阵的特征值，然后再通过特征向量来匹配验证码。
-    
-    '''
+     # 这个识别函数的过程是：首先对图像进行灰度处理，然后对验证码中每个数字进行切割，如果有四个数字，就切割成四份
+     # 每一个数字相是由一个像素矩阵组成，然后求取每个数字的像素矩阵的特征值，然后再通过特征向量来匹配验证码。
     img=Image.open(p)
     img1=img.convert("L")
     img1=filL(img1)
@@ -225,9 +214,7 @@ def recognize_picture(p,r):
     text = recognize_imgs(imgs)
     print("第{i}张图 为:{t}".format(i=str(r),t=text))
     return True
-
 global_path=python_getpic.path+r"recognize/"
-
 if __name__=='__main__':
     q=0
     end=python_getpic.num
@@ -235,7 +222,6 @@ if __name__=='__main__':
         pass
     else:
         os.makedirs(global_path)
-        
     for i in range(5):
         i = random.randint(1,end)
         print(i)
