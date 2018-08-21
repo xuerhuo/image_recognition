@@ -56,15 +56,50 @@ def noise(pixdata,width,height):
             pass
         # print('\n',end='')
     return  pixdata;
+# 图像分割
 def division(pixdata,width,height):
     xx = []
+    ret = []
+    fx = []
+    divisionpoint = []
+    # 线性
     for x in range(0, width):
         count = 0
         for y in range(0, height):
             if pixdata[x,y]==0:
                 count+=1
-        xx.append(count)
-    return  xx;
+        ret.append(count)
+        xx.append((x,count))
+    temp = 0
+    tempret = xx.copy()
+    # //削肩
+    for v in xx:
+        temp+=1
+        if xx.index(v)>0:
+            w,y = xx[xx.index(v)-1]
+            if v[1]==y:
+                r = xx[xx.index(v)-1]
+                tempret.remove(r)
+    xx = tempret
+    ret=[]
+    #求波谷
+    print('df')
+    for v in xx:
+        index = xx.index(v)
+        if index==0:
+           ret.append(v)
+        elif index<len(xx)-1:
+            if v[1]<xx[index-1][1] and v[1]<xx[index+1][1]:
+                ret.append(v)
+    ret.sort(key=lambda  x:x[1])
+    xx=ret.copy()
+    ret = []
+    for v in xx:
+        ret.append(v[0])
+    ret = ret[0:5]
+    ret.sort()
+    print(ret)
+    return  ret;
 def plot(img,img1,data):
     plt.subplot(1, 2, 1)
     plt.plot(data)
@@ -75,6 +110,7 @@ def plot(img,img1,data):
     plt.imshow(img)
     plt.show()
 # 填充灰度
+# 取样左上角5x5 然后灰度化
 def filL(img):
     pdata = img.load()
     xy = {}
@@ -86,7 +122,6 @@ def filL(img):
             else:
                 xy[l]=0
     l = max(xy)
-    print('l:%d',l)
     (w,h) = img.size
     for x in range(w):
         for y in range(h):
@@ -117,6 +152,7 @@ def recognize_picture(p,r):
     (width,heigh)=img2.size
     x0=[]
     y0=[]
+    pix2 = noise(pixdata=pix2,width=width,height=heigh)
     pix2 = noise(pixdata=pix2,width=width,height=heigh)
     data = division(pixdata=pix2,width=width,height=heigh)
     plot(img2,img,data)
